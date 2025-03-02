@@ -19,15 +19,31 @@ backend = environ.get('BACKEND') or "http://localhost"
 
 @app.route("/")
 def main():
+    """ דף ראשי של האפליקציה """
     app.logger.info("Entering main route")
     data = db_data()
     return render_template("index.html.jinja", host_name=host_name, db_host=db_host, data=data, backend=backend)
+@app.route("/health")
+def health():
+    health_messages = []
+    
+    # בדיקת תקינות בסיסית של האפליקציה
+    try:
+        app.logger.info("Application is running")
+        health_messages.append("Application: Healthy")
+    except Exception as e:
+        app.logger.error(f"Application health check failed: {e}")
+        health_messages.append("Application: Not Healthy")
+    
+    combined_health_status = "\n".join(health_messages)
+    return combined_health_status
+
+
 
 @app.route("/delete/<int:id>", methods=["DELETE"])
 def delete(id: int):
     app.logger.info("Request to delete person with id: %s", id)
     return db_delete(id)
-
 @app.route("/add", methods=["PUT"])
 def add():
     body = request.json
@@ -39,4 +55,5 @@ def add():
     return Response(status=404)
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)
+

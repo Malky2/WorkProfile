@@ -1,26 +1,30 @@
-# שלב 1: בסיס יציב יותר עם כל מה שצריך
-FROM python:3.9-bullseye
+# --- שלב ראשון: בנייה ---
+FROM python:3.9-bullseye AS builder
 
-# שלב 2: התקנת חבילות מערכת
 RUN apt-get update && apt-get install -y \
     gcc \
     default-libmysqlclient-dev \
     build-essential \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# שלב 3: תיקיית עבודה
 WORKDIR /app
 
-# שלב 4: התקנת חבילות פייתון
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# שלב 5: קבצי אפליקציה
 COPY static/ static/
 COPY templates/ templates/
 COPY app.py dbcontext.py person.py ./
 
-# שלב 6: פורט ואפליקציה
+# --- שלב שני: הפצה רזה ---
+FROM python:3.9-alpine
+
+RUN apk add --no-cache mariadb-connector-c libstdc++
+
+WORKDIR /app
+
+COPY --from=builder /install /usr/local
+COPY --from=builder /app /app
+
 EXPOSE 8080
 CMD ["python", "app.py"]
